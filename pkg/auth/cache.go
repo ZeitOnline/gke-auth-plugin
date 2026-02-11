@@ -10,12 +10,12 @@ import (
 
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
+	"k8s.io/client-go/pkg/apis/clientauthentication/v1"
 
 	"github.com/traviswt/gke-auth-plugin/pkg/conf"
 )
 
-func GetExecCredential() *v1beta1.ExecCredential {
+func GetExecCredential() *v1.ExecCredential {
 	cl := cacheLocation()
 	if cl == "" {
 		return nil
@@ -36,7 +36,7 @@ func GetExecCredential() *v1beta1.ExecCredential {
 	return ec
 }
 
-func SaveExecCredential(ec *v1beta1.ExecCredential) {
+func SaveExecCredential(ec *v1.ExecCredential) {
 	doNotCache := os.Getenv("GKE_AUTH_PLUGIN_DO_NOT_CACHE")
 	if strings.ToLower(doNotCache) == "true" {
 		return
@@ -66,12 +66,12 @@ func cacheLocation() string {
 	return cf
 }
 
-func loadFile(file string) (*v1beta1.ExecCredential, error) {
+func loadFile(file string) (*v1.ExecCredential, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
-	var ec v1beta1.ExecCredential
+	var ec v1.ExecCredential
 	err = yaml.Unmarshal(data, &ec)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func loadFile(file string) (*v1beta1.ExecCredential, error) {
 	return &ec, nil
 }
 
-func saveFile(file string, ec *v1beta1.ExecCredential) error {
+func saveFile(file string, ec *v1.ExecCredential) error {
 	if ec == nil {
 		return nil
 	}
