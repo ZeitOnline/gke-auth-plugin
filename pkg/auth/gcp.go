@@ -12,7 +12,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/impersonate"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientauthv1beta1 "k8s.io/client-go/pkg/apis/clientauthentication/v1beta1"
+	clientauthv1 "k8s.io/client-go/pkg/apis/clientauthentication/v1"
 )
 
 var (
@@ -68,23 +68,23 @@ func Gcp(ctx context.Context, impersonationAccount string) error {
 	return nil
 }
 
-func formatJSON(ec *clientauthv1beta1.ExecCredential) string {
+func formatJSON(ec *clientauthv1.ExecCredential) string {
 	//pretty print
 	enc, _ := json.MarshalIndent(ec, "", "  ")
 	return string(enc)
 }
 
-func newExecCredential(token string, exp time.Time) *clientauthv1beta1.ExecCredential {
+func newExecCredential(token string, exp time.Time) *clientauthv1.ExecCredential {
 	metaExp := metav1.NewTime(exp)
 	//the google token sometimes contains trailing periods,
 	//they cause problems with various tools, thus right trim
 	token = strings.TrimSuffix(token, ".")
-	ec := &clientauthv1beta1.ExecCredential{
+	ec := &clientauthv1.ExecCredential{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: clientauthv1beta1.SchemeGroupVersion.Identifier(),
+			APIVersion: clientauthv1.SchemeGroupVersion.Identifier(),
 			Kind:       "ExecCredential",
 		},
-		Status: &clientauthv1beta1.ExecCredentialStatus{
+		Status: &clientauthv1.ExecCredentialStatus{
 			ExpirationTimestamp: &metaExp,
 			Token:               token,
 		},
