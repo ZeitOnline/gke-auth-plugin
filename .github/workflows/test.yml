@@ -1,8 +1,6 @@
 name: Build and test code
 on:
   pull_request:
-  push:
-    branches: [main]
 
 jobs:
   run-tests:

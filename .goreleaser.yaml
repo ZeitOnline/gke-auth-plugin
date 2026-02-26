@@ -1,5 +1,5 @@
 version: 2
-project_name: terraform-bulk-summarize
+project_name: gke-auth-plugin
 
 builds:
   - env:
@@ -13,7 +13,7 @@ builds:
       - arm64
     ldflags:
       - -s -w -X main.appVersion={{.Version}} # Inject the version into the binary
-    binary: terraform-bulk-summarize
+    binary: gke-auth-plugin
 
 archives:
   - formats: ['tar.gz']
@@ -25,4 +25,4 @@ checksum:
 release:
   github:
     owner: ZeitOnline
-    name: terraform-bulk-summarize
+    name: gke-auth-plugin
