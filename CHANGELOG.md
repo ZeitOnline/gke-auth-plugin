@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/ZeitOnline/gke-auth-plugin/compare/v1.0.1...v1.0.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* fix credential caching ([7aabd09](https://github.com/ZeitOnline/gke-auth-plugin/commit/7aabd096b014ec816e32b56704d46a279aa1214b))
+
 ## [1.0.1](https://github.com/ZeitOnline/gke-auth-plugin/compare/v1.0.0...v1.0.1) (2026-02-26)
 
 
