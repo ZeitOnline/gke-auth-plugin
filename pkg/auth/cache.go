@@ -2,34 +2,47 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/traviswt/gke-auth-plugin/pkg/conf"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/pkg/apis/clientauthentication/v1"
 )
 
-func GetExecCredential() *v1.ExecCredential {
+type Credentials struct {
+	AccessToken                string    `json:"access_token"`
+	TokenExpiry                time.Time `json:"token_expiry"`
+	ImpersonatedServiceAccount string    `json:"impersonated_service_account"`
+}
+
+func GetCachedCredentials(impersonationAccount string) *v1.ExecCredential {
 	cl := cacheLocation()
 	if cl == "" {
 		return nil
 	}
-	ec, err := loadFile(cl)
+
+	creds, err := loadFile(cl)
 	if err != nil {
 		return nil
 	}
-	if ec.Status != nil && ec.Status.ExpirationTimestamp != nil &&
-		ec.Status.ExpirationTimestamp.Before(&metav1.Time{Time: time.Now()}) {
-		os.Remove(cl)
+
+	// Check if token has expired
+	if creds.TokenExpiry.Before(time.Now()) {
 		return nil
 	}
-	return ec
+
+	// Ensure that requested service account (if any) matches cached credentials
+	if impersonationAccount != creds.ImpersonatedServiceAccount {
+		return nil
+	}
+
+	return newExecCredential(creds.AccessToken, creds.TokenExpiry)
 }
 
-func SaveExecCredential(ec *v1.ExecCredential) {
+func SaveCredentialsToCache(ec *Credentials) {
 	doNotCache := os.Getenv("GKE_AUTH_PLUGIN_DO_NOT_CACHE")
 	if strings.ToLower(doNotCache) == "true" {
 		return
@@ -38,10 +51,13 @@ func SaveExecCredential(ec *v1.ExecCredential) {
 	if cl == "" {
 		return
 	}
-	_ = saveFile(cl, ec)
+	err := saveFile(cl, ec)
+	if err != nil {
+		fmt.Printf("error writing credentials to cache: %v\n", err)
+	}
 }
 
-// cacheLocation returns the file to Cache the exec cred to, if blank, don't Cache
+// cacheLocation returns the file to Cache the exec cred to, if blank, don't Cache.
 // KUBECONFIG takes precedence, if not set, the .kube directory will be used, if it exists.
 // Otherwise credentials will be cached in the user's home directory, which is not ideal,
 // but better than nothing.
@@ -63,24 +79,24 @@ func cacheLocation() string {
 	return filepath.Join(userHomeDir, conf.CacheFileName)
 }
 
-func loadFile(file string) (*v1.ExecCredential, error) {
+func loadFile(file string) (*Credentials, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
-	var ec v1.ExecCredential
-	err = json.Unmarshal(data, &ec)
+	var cachedCredentials Credentials
+	err = json.Unmarshal(data, &cachedCredentials)
 	if err != nil {
 		return nil, err
 	}
-	return &ec, nil
+	return &cachedCredentials, nil
 }
 
-func saveFile(file string, ec *v1.ExecCredential) error {
-	if ec == nil {
+func saveFile(file string, creds *Credentials) error {
+	if creds == nil {
 		return nil
 	}
-	data, err := json.MarshalIndent(ec, "", "  ")
+	data, err := json.MarshalIndent(creds, "", "  ")
 	if err != nil {
 		return err
 	}
