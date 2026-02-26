@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/ZeitOnline/gke-auth-plugin/compare/v1.0.2...v1.0.3) (2026-02-26)
+
+
+### Bug Fixes
+
+* fix version command ([37caa5f](https://github.com/ZeitOnline/gke-auth-plugin/commit/37caa5f2189c2ba6ee130e423c0392f3c66f5785))
+
 ## [1.0.2](https://github.com/ZeitOnline/gke-auth-plugin/compare/v1.0.1...v1.0.2) (2026-02-26)
 
 
