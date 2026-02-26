@@ -22,33 +22,35 @@ var (
 	}
 )
 
+func getTokenSource(ctx context.Context, impersonationAccount string) (oauth2.TokenSource, error) {
+	if impersonationAccount != "" {
+		return impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
+			TargetPrincipal: impersonationAccount,
+			Scopes:          gcpScopes,
+		})
+	}
+
+	cred, err := google.FindDefaultCredentials(ctx, gcpScopes...)
+	if err != nil {
+		return nil, err
+	}
+
+	if cred == nil {
+		return nil, errors.New("failed finding default credentials")
+	}
+
+	return cred.TokenSource, nil
+}
+
 func Gcp(ctx context.Context, impersonationAccount string) error {
 	// Use cached exec credential
-	if ec := GetExecCredential(); ec != nil {
+	if ec := GetCachedCredentials(impersonationAccount); ec != nil {
 		credString := formatJSON(ec)
 		fmt.Print(credString)
 		return nil
 	}
 
-	var ts oauth2.TokenSource
-	var err error
-	if impersonationAccount != "" {
-		// Get impersonated token source
-		ts, err = impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
-			TargetPrincipal: impersonationAccount,
-			Scopes:          gcpScopes,
-		})
-	} else {
-		// Get application default credentials token source
-		cred, err := google.FindDefaultCredentials(ctx, gcpScopes...)
-		if err != nil {
-			return err
-		}
-		if cred == nil {
-			return errors.New("failed finding default credentials")
-		}
-		ts = cred.TokenSource
-	}
+	ts, err := getTokenSource(ctx, impersonationAccount)
 	if err != nil {
 		return err
 	}
@@ -60,9 +62,10 @@ func Gcp(ctx context.Context, impersonationAccount string) error {
 
 	// Create ExecCredential from token
 	ec := newExecCredential(token.AccessToken, token.Expiry)
+	creds := Credentials{token.AccessToken, token.Expiry, impersonationAccount}
 
 	// Cache exec credential
-	SaveExecCredential(ec)
+	SaveCredentialsToCache(&creds)
 	credString := formatJSON(ec)
 	fmt.Print(credString)
 	return nil
@@ -75,7 +78,7 @@ func formatJSON(ec *clientauthv1.ExecCredential) string {
 }
 
 func newExecCredential(token string, exp time.Time) *clientauthv1.ExecCredential {
-	metaExp := metav1.NewTime(exp)
+	expiryTime := metav1.NewTime(exp)
 	//the google token sometimes contains trailing periods,
 	//they cause problems with various tools, thus right trim
 	token = strings.TrimSuffix(token, ".")
@@ -85,7 +88,7 @@ func newExecCredential(token string, exp time.Time) *clientauthv1.ExecCredential
 			Kind:       "ExecCredential",
 		},
 		Status: &clientauthv1.ExecCredentialStatus{
-			ExpirationTimestamp: &metaExp,
+			ExpirationTimestamp: &expiryTime,
 			Token:               token,
 		},
 	}
