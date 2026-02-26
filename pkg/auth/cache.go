@@ -1,14 +1,13 @@
 package auth
 
 import (
-	"bufio"
+	"encoding/json"
+	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/pkg/apis/clientauthentication/v1"
 
@@ -24,14 +23,10 @@ func GetExecCredential() *v1.ExecCredential {
 	if err != nil {
 		return nil
 	}
-	if ec != nil {
-		if ec.Status != nil && ec.Status.ExpirationTimestamp != nil {
-			now := metav1.NewTime(time.Now())
-			if ec.Status.ExpirationTimestamp.Before(&now) {
-				deleteFile(cl)
-				return nil
-			}
-		}
+	if ec.Status != nil && ec.Status.ExpirationTimestamp != nil &&
+		ec.Status.ExpirationTimestamp.Before(&metav1.Time{Time: time.Now()}) {
+		os.Remove(cl)
+		return nil
 	}
 	return ec
 }
@@ -50,20 +45,16 @@ func SaveExecCredential(ec *v1.ExecCredential) {
 
 // cacheLocation returns the file to Cache the exec cred to, if blank, don't Cache
 func cacheLocation() string {
-	cacheFileDir := ""
 	kubeconfig := os.Getenv("KUBECONFIG")
-	if kubeconfig != "" {
-		abs, err := filepath.Abs(kubeconfig)
-		if err == nil {
-			dir := filepath.Dir(abs)
-			cacheFileDir = dir
-		}
-	}
-	if cacheFileDir == "" {
+	if kubeconfig == "" {
 		return ""
 	}
-	cf := path.Join(cacheFileDir, conf.CacheFileName)
-	return cf
+	abs, err := filepath.Abs(kubeconfig)
+	if err != nil {
+		return ""
+	}
+	fmt.Println(filepath.Join(abs, conf.CacheFileName))
+	return filepath.Join(abs, conf.CacheFileName)
 }
 
 func loadFile(file string) (*v1.ExecCredential, error) {
@@ -72,7 +63,7 @@ func loadFile(file string) (*v1.ExecCredential, error) {
 		return nil, err
 	}
 	var ec v1.ExecCredential
-	err = yaml.Unmarshal(data, &ec)
+	err = json.Unmarshal(data, &ec)
 	if err != nil {
 		return nil, err
 	}
@@ -83,30 +74,12 @@ func saveFile(file string, ec *v1.ExecCredential) error {
 	if ec == nil {
 		return nil
 	}
-	data, err := yaml.Marshal(ec)
+	data, err := json.MarshalIndent(ec, "", "  ")
 	if err != nil {
 		return err
 	}
 	if len(data) == 0 {
 		return nil
 	}
-	deleteFile(file)
-	f, err := os.Create(file)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	w := bufio.NewWriter(f)
-	_, err = w.Write(data)
-	if err != nil {
-		return err
-	}
-	if err := w.Flush(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func deleteFile(file string) {
-	_ = os.Remove(file)
+	return os.WriteFile(file, data, 0600)
 }
