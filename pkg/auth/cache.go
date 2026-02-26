@@ -2,16 +2,14 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/apis/clientauthentication/v1"
-
 	"github.com/traviswt/gke-auth-plugin/pkg/conf"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/pkg/apis/clientauthentication/v1"
 )
 
 func GetExecCredential() *v1.ExecCredential {
@@ -44,17 +42,25 @@ func SaveExecCredential(ec *v1.ExecCredential) {
 }
 
 // cacheLocation returns the file to Cache the exec cred to, if blank, don't Cache
+// KUBECONFIG takes precedence, if not set, the .kube directory will be used, if it exists.
+// Otherwise credentials will be cached in the user's home directory, which is not ideal,
+// but better than nothing.
 func cacheLocation() string {
-	kubeconfig := os.Getenv("KUBECONFIG")
-	if kubeconfig == "" {
-		return ""
+	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
+		return filepath.Join(filepath.Dir(kubeconfig), conf.CacheFileName)
 	}
-	abs, err := filepath.Abs(kubeconfig)
+
+	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	fmt.Println(filepath.Join(abs, conf.CacheFileName))
-	return filepath.Join(abs, conf.CacheFileName)
+
+	kubeDir := filepath.Join(userHomeDir, ".kube")
+	if _, err := os.Stat(kubeDir); err == nil {
+		return filepath.Join(kubeDir, conf.CacheFileName)
+	}
+
+	return filepath.Join(userHomeDir, conf.CacheFileName)
 }
 
 func loadFile(file string) (*v1.ExecCredential, error) {
