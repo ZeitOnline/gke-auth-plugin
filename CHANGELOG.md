@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/ZeitOnline/gke-auth-plugin/compare/v1.0.0...v1.0.1) (2026-02-26)
+
+
+### Bug Fixes
+
+* fix goreleaser config ([704ed3d](https://github.com/ZeitOnline/gke-auth-plugin/commit/704ed3dc0c0cb23e4588fb28bea1da8e371ad009))
+
 ## 1.0.0 (2026-02-26)
 
 
