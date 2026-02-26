@@ -12,7 +12,8 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X main.appVersion={{.Version}} # Inject the version into the binary
+      - -w -s -X github.com/traviswt/gke-auth-plugin/pkg/conf.Version={{ .Version }}
+      - -X github.com/traviswt/gke-auth-plugin/pkg/conf.GitCommit={{ .Commit }}
     binary: gke-auth-plugin
 
 archives:
