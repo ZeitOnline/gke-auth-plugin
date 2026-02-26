@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/ZeitOnline/gke-auth-plugin/compare/v1.0.3...v1.0.4) (2026-02-26)
+
+
+### Bug Fixes
+
+* fix caching with impersonation ([cbfb4dd](https://github.com/ZeitOnline/gke-auth-plugin/commit/cbfb4dd52f9dff497e8f4022fca5e72aba5feb4e))
+
 ## [1.0.3](https://github.com/ZeitOnline/gke-auth-plugin/compare/v1.0.2...v1.0.3) (2026-02-26)
 
 
